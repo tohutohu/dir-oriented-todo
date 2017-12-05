@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -110,7 +111,10 @@ func cmdAdd(c *cli.Context) {
 	}
 	todo := Todo{}
 	fmt.Print("what todo?> ")
-	fmt.Scan(&todo.Body)
+	sc := bufio.NewScanner(os.Stdin)
+	if sc.Scan() {
+		todo.Body = sc.Text()
+	}
 	todo.Time = time.Now()
 	todoDir.Todos = append(todoDir.Todos, todo)
 	todoDir.Path = curDir
@@ -150,9 +154,9 @@ func cmdDelete(c *cli.Context) {
 }
 
 func printTodos(todos []Todo) {
-	fmt.Println(" ID             Body                                Date")
+	fmt.Println(" ID             Body                                                         Date")
 	for i, todo := range todos {
-		fmt.Printf("%3d             %-*s %s\n", i+1, 35-(len(todo.Body)-len([]rune(todo.Body)))/2, todo.Body, todo.Time.Format("01/2 15:04"))
+		fmt.Printf("%3d             %-*s %s\n", i+1, 60-(len(todo.Body)-len([]rune(todo.Body)))/2, todo.Body, todo.Time.Format("01/2 15:04"))
 	}
 }
 
