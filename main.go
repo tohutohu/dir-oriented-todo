@@ -104,6 +104,9 @@ func cmdAdd(c *cli.Context) {
 	todoDir, ok := todoList[curDir]
 	if !ok {
 		todoDir = new(TodoDir)
+	} else if len(todoDir.Todos) > 0 {
+		printTodos(todoDir.Todos)
+		fmt.Println()
 	}
 	todo := Todo{}
 	fmt.Print("what todo?> ")
