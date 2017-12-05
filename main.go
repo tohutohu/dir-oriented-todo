@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/urfave/cli"
 )
@@ -16,11 +17,16 @@ type Config struct {
 }
 
 type Todo struct {
-	Path string `json:"path"`
-	Body string `json:"body"`
+	Body string    `json:"body"`
+	Time time.Time `json:"time"`
 }
 
-type TodoList map[string]*Todo
+type TodoDir struct {
+	Path  string `json:"path"`
+	Todos []Todo `json:"todos"`
+}
+
+type TodoList map[string]*TodoDir
 
 func (config *Config) load() (TodoList, error) {
 	dir := filepath.Join(os.Getenv("HOME"), ".config", "todo")
@@ -76,19 +82,74 @@ func cmdMain(c *cli.Context) {
 		panic(err)
 	}
 
-	fmt.Println("Hello")
-
-	body, ok := todoList[curDir]
-	if ok {
-		fmt.Println(body)
+	todoDir, ok := todoList[curDir]
+	if ok && len(todoDir.Todos) > 0 {
+		printTodos(todoDir.Todos)
 	} else {
-		todo := new(Todo)
-		fmt.Print("what todo?> ")
-		fmt.Scan(&(todo.Body))
-		todo.Path = curDir
-		todoList[curDir] = todo
+		fmt.Println("Current directory has no todo!")
+	}
+}
+
+func cmdAdd(c *cli.Context) {
+	var config Config
+	todoList, err := config.load()
+	if err != nil {
+		panic(err)
+	}
+	curDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	var todoDir *TodoDir
+	todoDir, ok := todoList[curDir]
+	if !ok {
+		todoDir = new(TodoDir)
+	}
+	todo := Todo{}
+	fmt.Print("what todo?> ")
+	fmt.Scan(&todo.Body)
+	todo.Time = time.Now()
+	todoDir.Todos = append(todoDir.Todos, todo)
+	todoDir.Path = curDir
+	todoList[curDir] = todoDir
+	todoList.Save(config.FilePath)
+	fmt.Println("Saved!")
+}
+
+func cmdDelete(c *cli.Context) {
+	var config Config
+	todoList, err := config.load()
+	if err != nil {
+		panic(err)
+	}
+	curDir, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	todoDir, ok := todoList[curDir]
+	if !ok || len(todoDir.Todos) == 0 {
+		fmt.Println("Current directory has no todo!")
+		return
+	}
+	printTodos(todoDir.Todos)
+
+	fmt.Print("ID> ")
+	var ID int
+	fmt.Scan(&ID)
+	if ID-1 < len(todoDir.Todos) {
+		todoDir.Todos = append(todoDir.Todos[:(ID-1)], todoDir.Todos[ID:]...)
+		todoList[curDir] = todoDir
 		todoList.Save(config.FilePath)
-		fmt.Println("Saved!")
+		fmt.Println("Deleted!")
+	} else {
+		fmt.Println("Invalid ID")
+	}
+}
+
+func printTodos(todos []Todo) {
+	fmt.Println(" ID             Body                                Date")
+	for i, todo := range todos {
+		fmt.Printf("%3d             %-*s %s\n", i+1, 35-(len(todo.Body)-len([]rune(todo.Body)))/2, todo.Body, todo.Time.Format("01/2 15:04"))
 	}
 }
 
@@ -109,6 +170,14 @@ func main() {
 		{
 			Name:   "test",
 			Action: test,
+		},
+		{
+			Name:   "add",
+			Action: cmdAdd,
+		},
+		{
+			Name:   "delete",
+			Action: cmdDelete,
 		},
 	}
 
