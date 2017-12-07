@@ -75,6 +75,18 @@ func (todoList *TodoList) Save(path string) error {
 func cmdMain(c *cli.Context) {
 	var config Config
 	todoList, err := config.load()
+
+	if c.Bool("a") {
+		for _, todos := range todoList {
+			if len(todos.Todos) > 0 {
+				fmt.Println(todos.Path)
+				printTodos(todos.Todos)
+				fmt.Print("\n")
+			}
+		}
+		return
+	}
+
 	if err != nil {
 		panic(err)
 	}
@@ -185,6 +197,13 @@ func main() {
 		{
 			Name:   "delete",
 			Action: cmdDelete,
+		},
+	}
+
+	app.Flags = []cli.Flag{
+		cli.BoolFlag{
+			Name:  "all, a",
+			Usage: "show all todo",
 		},
 	}
 
